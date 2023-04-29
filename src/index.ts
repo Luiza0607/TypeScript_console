@@ -1,4 +1,5 @@
 const inquirer = require('inquirer');
+const consola = require('consola');
 
 enum Action {
   List = 'list',
@@ -21,10 +22,146 @@ const startApp = () => {
       },
     ])
     .then(async (answers: InquirerAnswers) => {
-      console.log('Chosen action: ' + answers.action);
+      switch (answers.action) {
+        case Action.List:
+          users.showAll();
+          break;
+        case Action.Add:
+          const user = await inquirer.prompt([
+            {
+              name: 'name',
+              type: 'input',
+              message: 'Enter name',
+            },
+            {
+              name: 'age',
+              type: 'number',
+              message: 'Enter age',
+            },
+          ]);
+          users.add(user);
+          break;
+        case Action.Remove:
+          const name = await inquirer.prompt([
+            {
+              name: 'name',
+              type: 'input',
+              message: 'Enter name',
+            },
+          ]);
+          users.remove(name.name);
+          break;
+        case Action.Quit:
+          Message.showColorized(MessageType.Info, 'Bye bye!');
+          return;
+      }
+
       startApp();
-      if (answers.action === 'quit') return;
     });
 };
+
+enum MessageType {
+  Success = 'success',
+  Error = 'error',
+  Info = 'info',
+}
+
+class Message {
+  private content: string;
+
+  constructor(content: string) {
+    this.content = content;
+  }
+
+  public show(): void {
+    console.log(this.content);
+  }
+
+  public capitalize(): void {
+    const splitContent: string[] = this.content.split('');
+    const first = splitContent[0].toUpperCase();
+    splitContent.shift();
+    const rest = splitContent.join('').toLowerCase();
+    this.content = first + rest;
+  }
+
+  public toUpperCase(): void {
+    this.content = this.content.toUpperCase();
+  }
+
+  public toLowerCase(): void {
+    this.content = this.content.toLowerCase();
+  }
+
+  static showColorized(variant: MessageType, text: string): void {
+    if (variant === 'success') {
+      consola.success(text);
+    } else if (variant === 'error') {
+      consola.error(text);
+    } else if (variant === 'info') {
+      consola.info(text);
+    }
+  }
+}
+
+interface User {
+  name: string;
+  age: number;
+}
+
+class UsersData {
+  data: User[];
+
+  constructor() {
+    this.data = [];
+  }
+
+  public showAll(): void {
+    Message.showColorized(MessageType.Info, 'Users data');
+    if (this.data.length === 0) {
+      console.log('No data...');
+    } else {
+      console.table(this.data);
+    }
+  }
+
+  public add(user: User): void {
+    if (user.name.length > 0 && user.age > 0 && user.age < 140) {
+      this.data.push(user);
+      Message.showColorized(
+        MessageType.Success,
+        'User has been successfully added!'
+      );
+    } else {
+      Message.showColorized(MessageType.Error, 'Wrong data!');
+    }
+  }
+
+  public remove(userName: string): void {
+    const index = this.data.findIndex((user) => {
+      return userName === user.name;
+    });
+
+    if (index === -1) {
+      Message.showColorized(MessageType.Error, 'User not found...');
+    } else {
+      this.data.splice(index, 1);
+      Message.showColorized(MessageType.Success, 'User deleted!');
+    }
+  }
+}
+
+const users = new UsersData();
+
+console.log('\n');
+console.info('???? Welcome to the UsersApp!');
+console.log('====================================');
+Message.showColorized(MessageType.Info, 'Available actions');
+console.log('\n');
+console.log('list – show all users');
+console.log('add – add new user to the list');
+console.log('remove – remove user from the list');
+console.log('quit – quit the app');
+console.log('\n');
 
 startApp();
